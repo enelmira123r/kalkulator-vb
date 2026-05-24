@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Kalkulator - VB.NET Server</title>
+<style>
+  :root {
+    --bg-page: #e9edf0;
+    --calc-bg: #ffffff;
+    --top-bar: #f3f5f7;
+    --display-bg: #ffffff;
+    --display-text: #1d2b33;
+    --display-sub: #9aa7b0;
+    --btn-num: #fafbfc;
+    --btn-num-text: #2b3a42;
+    --btn-fn: #f0f2f4;
+    --btn-fn-text: #5b6b74;
+    --btn-border: #e3e8ec;
+    --shadow: rgba(40,60,75,.10);
+    --accent-op: #c9b8e8;
+    --accent-op-text: #6a4fa3;
+    --equals: #f3a04a;
+    --equals2: #f0892b;
+    --clear: #e8615c;
+    --history-bg: #f7f9fa;
+    --eval-pass: #2faa5e;
+    --eval-fail: #e8615c;
+  }
+  .dark {
+    --bg-page: #1a1d21;
+    --calc-bg: #25282d;
+    --top-bar: #2e3238;
+    --display-bg: #1b1e22;
+    --display-text: #ffffff;
+    --display-sub: #6b757d;
+    --btn-num: #31353b;
+    --btn-num-text: #e7ecef;
+    --btn-fn: #3a3f46;
+    --btn-fn-text: #c4ccd2;
+    --btn-border: #3d424a;
+    --shadow: rgba(0,0,0,.35);
+    --accent-op: #6d5a93;
+    --accent-op-text: #e3d9f7;
+    --equals: #f3a04a;
+    --equals2: #e8820c;
+    --clear: #d9534f;
+    --history-bg: #1e2125;
+    --eval-pass: #3cc878;
+    --eval-fail: #e8615c;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg-page);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 28px;
+    padding: 30px;
+    flex-wrap: wrap;
+    transition: background .3s;
+  }
+
+  .calc {
+    width: 340px;
+    background: var(--calc-bg);
+    border-radius: 22px;
+    box-shadow: 0 20px 50px var(--shadow);
+    overflow: hidden;
+    transition: background .3s;
+  }
+
+  .top-bar {
+    background: var(--top-bar);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--btn-border);
+  }
+  .mem-btn {
+    flex: 1;
+    border: none;
+    background: transparent;
+    color: var(--btn-fn-text);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 7px 0;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .mem-btn:hover { background: rgba(125,140,150,.12); }
+  .theme-toggle {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 6px 8px;
+    border-radius: 7px;
+    color: var(--btn-fn-text);
+  }
+  .theme-toggle:hover { background: rgba(125,140,150,.12); }
+
+  .display {
+    background: var(--display-bg);
+    padding: 22px 22px 18px;
+    text-align: right;
+    transition: background .3s;
+  }
+  .display .expr {
+    color: var(--display-sub);
+    font-size: 14px;
+    min-height: 18px;
+    font-weight: 500;
+    word-break: break-all;
+  }
+  .display .main {
+    color: var(--display-text);
+    font-size: 46px;
+    font-weight: 300;
+    margin-top: 4px;
+    word-break: break-all;
+    line-height: 1.1;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 9px;
+    padding: 16px;
+  }
+  button.key {
+    border: 1px solid var(--btn-border);
+    border-radius: 13px;
+    padding: 16px 0;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    background: var(--btn-num);
+    color: var(--btn-num-text);
+    transition: transform .08s, filter .15s, background .3s;
+    user-select: none;
+  }
+  button.key:hover { filter: brightness(.97); }
+  .dark button.key:hover { filter: brightness(1.15); }
+  button.key:active { transform: scale(.94); }
+
+  .key.fn { background: var(--btn-fn); color: var(--btn-fn-text); font-size: 16px; }
+  .key.op { background: var(--accent-op); color: var(--accent-op-text); }
+  .key.clear { background: var(--clear); color: #fff; }
+  .key.equals {
+    background: linear-gradient(135deg, var(--equals), var(--equals2));
+    color: #fff;
+  }
+  .key.eval { grid-column: span 4; background: var(--eval-pass); color:#fff; font-size:14px; padding: 14px 0; }
+
+  .panel {
+    width: 300px;
+    background: var(--calc-bg);
+    border-radius: 22px;
+    box-shadow: 0 20px 50px var(--shadow);
+    padding: 20px;
+    align-self: stretch;
+    max-height: 600px;
+    display: flex;
+    flex-direction: column;
+    transition: background .3s;
+  }
+  .panel h2 {
+    color: var(--display-text);
+    font-size: 17px;
+    margin-bottom: 4px;
+  }
+  .panel .sub { color: var(--display-sub); font-size: 12px; margin-bottom: 14px; }
+  .hist-list {
+    list-style: none;
+    overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .hist-list li {
+    background: var(--history-bg);
+    border-radius: 10px;
+    padding: 9px 12px;
+    font-size: 13px;
+    color: var(--btn-num-text);
+    border-left: 3px solid var(--accent-op);
+  }
+  .hist-list li.pass { border-left-color: var(--eval-pass); }
+  .hist-list li.fail { border-left-color: var(--eval-fail); }
+  .hist-empty { color: var(--display-sub); font-size: 13px; font-style: italic; }
+  .clear-hist {
+    margin-top: 12px;
+    border: 1px solid var(--btn-border);
+    background: transparent;
+    color: var(--btn-fn-text);
+    border-radius: 10px;
+    padding: 9px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .clear-hist:hover { background: rgba(125,140,150,.1); }
+
+  .eval-result {
+    margin-top: 10px;
+    padding: 11px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 700;
+    text-align: center;
+    display: none;
+  }
+  .eval-result.show { display: block; }
+  .eval-result.pass { background: var(--eval-pass); color: #fff; }
+  .eval-result.fail { background: var(--eval-fail); color: #fff; }
+  .eval-result.warn { background: #e8820c; color: #fff; }
+
+  .badge {
+    position: fixed;
+    bottom: 10px;
+    right: 14px;
+    font-size: 11px;
+    color: var(--display-sub);
+    background: var(--calc-bg);
+    padding: 4px 10px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px var(--shadow);
+  }
+</style>
+</head>
+<body>
+
+  <div class="calc">
+    <div class="top-bar">
+      <button type="button" class="mem-btn" onclick="memClear()">MC</button>
+      <button type="button" class="mem-btn" onclick="memRecall()">MR</button>
+      <button type="button" class="mem-btn" onclick="memAdd()">M+</button>
+      <button type="button" class="mem-btn" onclick="memSub()">M-</button>
+      <button type="button" class="theme-toggle" onclick="toggleTheme()" id="themeBtn">&#127769;</button>
+    </div>
+
+    <div class="display">
+      <div class="expr" id="expr"></div>
+      <div class="main" id="main">0</div>
+    </div>
+
+    <div class="grid">
+      <button type="button" class="key clear" onclick="clearAll()">C</button>
+      <button type="button" class="key fn" onclick="clearEntry()">CE</button>
+      <button type="button" class="key fn" onclick="backspace()">&#9003;</button>
+      <button type="button" class="key op" onclick="chooseOp('/')">&#247;</button>
+
+      <button type="button" class="key fn" onclick="percent()">%</button>
+      <button type="button" class="key fn" onclick="sqrt()">&#8730;</button>
+      <button type="button" class="key fn" onclick="reciprocal()">1/x</button>
+      <button type="button" class="key op" onclick="chooseOp('*')">&#215;</button>
+
+      <button type="button" class="key" onclick="num('7')">7</button>
+      <button type="button" class="key" onclick="num('8')">8</button>
+      <button type="button" class="key" onclick="num('9')">9</button>
+      <button type="button" class="key op" onclick="chooseOp('-')">&#8722;</button>
+
+      <button type="button" class="key" onclick="num('4')">4</button>
+      <button type="button" class="key" onclick="num('5')">5</button>
+      <button type="button" class="key" onclick="num('6')">6</button>
+      <button type="button" class="key op" onclick="chooseOp('+')">+</button>
+
+      <button type="button" class="key" onclick="num('1')">1</button>
+      <button type="button" class="key" onclick="num('2')">2</button>
+      <button type="button" class="key" onclick="num('3')">3</button>
+      <button type="button" class="key equals" onclick="equals()" style="grid-row: span 2;">=</button>
+
+      <button type="button" class="key" onclick="num('0')" style="grid-column: span 2;">0</button>
+      <button type="button" class="key" onclick="dot()">.</button>
+
+      <button type="button" class="key eval" onclick="vleresoPiket()">Vlerëso Pikët (&#8805;50 kalon)</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Historia</h2>
+    <div class="sub">Veprimet dhe vlerësimet ruhen këtu</div>
+    <ul class="hist-list" id="histList">
+      <li class="hist-empty">Ende s'ka veprime.</li>
+    </ul>
+    <div class="eval-result" id="evalResult"></div>
+    <button type="button" class="clear-hist" onclick="clearHistory()">Pastro Historinë</button>
+  </div>
+
+  <div class="badge">VB.NET Server &middot; LAN</div>
+
+<script>
+  let current = "0";
+  let previous = null;
+  let operator = null;
+  let resetNext = false;
+  let memory = 0;
+  let history = [];
+
+  const mainEl = document.getElementById('main');
+  const exprEl = document.getElementById('expr');
+  const histListEl = document.getElementById('histList');
+  const evalResultEl = document.getElementById('evalResult');
+
+  function opSym(o) {
+    return {'+':'+','-':'−','*':'×','/':'÷'}[o] || '';
+  }
+
+  function updateDisplay() {
+    mainEl.textContent = current;
+    exprEl.textContent = previous !== null ? (previous + ' ' + opSym(operator)) : '';
+  }
+
+  function num(n) {
+    if (resetNext) { current = "0"; resetNext = false; }
+    if (current === "0") current = n;
+    else current += n;
+    updateDisplay();
+  }
+
+  function dot() {
+    if (resetNext) { current = "0"; resetNext = false; }
+    if (!current.includes('.')) current += '.';
+    updateDisplay();
+  }
+
+  function chooseOp(op) {
+    if (operator !== null && !resetNext) { equals(); }
+    previous = current;
+    operator = op;
+    resetNext = true;
+    updateDisplay();
+  }
+
+  function compute(a, b, op) {
+    a = parseFloat(a); b = parseFloat(b);
+    let r = 0;
+    if (op === '+') r = a + b;
+    else if (op === '-') r = a - b;
+    else if (op === '*') r = a * b;
+    else if (op === '/') {
+      if (b === 0) return "Gabim: /0";
+      r = a / b;
+    }
+    return r;
+  }
+
+  function equals() {
+    if (operator === null || previous === null) return;
+    let result = compute(previous, current, operator);
+    addHistory(previous + ' ' + opSym(operator) + ' ' + current + ' = ' + result);
+    current = String(result);
+    operator = null;
+    previous = null;
+    resetNext = true;
+    exprEl.textContent = '';
+    mainEl.textContent = current;
+  }
+
+  function clearAll() {
+    current = "0"; previous = null; operator = null; resetNext = false;
+    updateDisplay();
+  }
+  function clearEntry() { current = "0"; updateDisplay(); }
+  function backspace() {
+    if (resetNext) return;
+    current = current.length > 1 ? current.slice(0, -1) : "0";
+    updateDisplay();
+  }
+
+  function percent() {
+    current = String(parseFloat(current) / 100);
+    updateDisplay();
+  }
+
+  function sqrt() {
+    let x = parseFloat(current);
+    if (x < 0) { current = "Gabim"; updateDisplay(); return; }
+    if (x === 0) { current = "0"; updateDisplay(); return; }
+    let g = x / 2;
+    for (let i = 0; i < 25; i++) { g = (g + x / g) / 2; }
+    current = String(g);
+    addHistory('√' + x + ' = ' + current);
+    updateDisplay();
+  }
+
+  function reciprocal() {
+    let x = parseFloat(current);
+    if (x === 0) { current = "Gabim"; updateDisplay(); return; }
+    current = String(1 / x);
+    addHistory('1/' + x + ' = ' + current);
+    updateDisplay();
+  }
+
+  function memClear() { memory = 0; }
+  function memRecall() { current = String(memory); resetNext = true; updateDisplay(); }
+  function memAdd() { memory += parseFloat(current); }
+  function memSub() { memory -= parseFloat(current); }
+
+  // POST te serveri VB.NET
+  function vleresoPiket() {
+    let pike = parseFloat(current);
+    if (isNaN(pike)) {
+      showEval("Ju lutem shkruani një numër!", 'warn');
+      return;
+    }
+    fetch('/api/vleresoj', {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: String(pike)
+    })
+    .then(function(r) {
+      if (!r.ok) throw new Error('no-server');
+      return r.text();
+    })
+    .then(function(text) {
+      let parts = text.split('|');
+      let kind = parts[0].toLowerCase();
+      if (kind !== 'pass' && kind !== 'fail' && kind !== 'warn') throw new Error('bad-response');
+      let msg = parts[1] || text;
+      showEval(msg, kind);
+      if (kind === 'pass' || kind === 'fail') addHistory(msg, kind);
+    })
+    .catch(function() {
+      if (pike >= 50) {
+        let m = "Nxënësi kalon testin (" + pike + " pikë)";
+        showEval(m, 'pass'); addHistory(m, 'pass');
+      } else {
+        let m = "Nxënësi mbetet (" + pike + " pikë)";
+        showEval(m, 'fail'); addHistory(m, 'fail');
+      }
+    });
+  }
+
+  function showEval(msg, kind) {
+    evalResultEl.textContent = msg;
+    evalResultEl.className = 'eval-result show ' + kind;
+  }
+
+  function addHistory(text, type) {
+    history.unshift({ text: text, type: type });
+    renderHistory();
+  }
+  function renderHistory() {
+    if (history.length === 0) {
+      histListEl.innerHTML = '<li class="hist-empty">Ende s\'ka veprime.</li>';
+      return;
+    }
+    histListEl.innerHTML = '';
+    history.forEach(function(h) {
+      let li = document.createElement('li');
+      li.textContent = h.text;
+      if (h.type) li.classList.add(h.type);
+      histListEl.appendChild(li);
+    });
+  }
+  function clearHistory() {
+    history = [];
+    renderHistory();
+    evalResultEl.className = 'eval-result';
+  }
+
+  function toggleTheme() {
+    document.body.classList.toggle('dark');
+    document.getElementById('themeBtn').innerHTML =
+      document.body.classList.contains('dark') ? '☀️' : '🌙';
+  }
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key >= '0' && e.key <= '9') num(e.key);
+    else if (e.key === '.') dot();
+    else if (['+','-','*','/'].includes(e.key)) chooseOp(e.key);
+    else if (e.key === 'Enter' || e.key === '=') { e.preventDefault(); equals(); }
+    else if (e.key === 'Backspace') backspace();
+    else if (e.key === 'Escape') clearAll();
+  });
+
+  updateDisplay();
+</script>
+</body>
+</html>
